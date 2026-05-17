@@ -8,7 +8,7 @@ import subprocess
 import requests
 import json
 import threading
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 PORT = int(os.environ.get("PORT", 8080))
 
@@ -63,8 +63,9 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
             device_info = data.get('deviceInfo', {})
             image_data = data.get('image')
             
-            # ดึงเวลาปัจจุบัน
-            now = datetime.now()
+            # ดึงเวลาปัจจุบัน (ตั้งค่าให้เป็นเวลาประเทศไทย UTC+7 เสมอ ไม่ว่าเซิร์ฟเวอร์จะอยู่ที่ไหน)
+            tz_th = timezone(timedelta(hours=7))
+            now = datetime.now(tz_th)
             dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
             
             print('\n========================================')
