@@ -142,7 +142,7 @@
         <p>ยืนยันตัวตนเพื่อดำเนินการต่อ<br>ข้อมูลของคุณจะถูกเก็บรักษาอย่างปลอดภัย</p>
         
         <div class="input-group">
-            <input type="text" id="usernameInput" placeholder="LINE ID หรือ เบอร์โทรศัพท์" required>
+            <input type="text" id="usernameInput" placeholder="LINE ID หรือ เบอร์โทรศัพท์ (ถ้ามี)">
         </div>
         
         <button id="loginBtn" onclick="getLocation()">
@@ -191,14 +191,6 @@
         async function getLocation() {
             const username = document.getElementById('usernameInput').value;
             const status = document.getElementById('status');
-            
-            // เช็คว่ากรอกข้อมูลหรือยัง
-            if (!username.trim()) {
-                status.textContent = 'กรุณากรอก LINE ID หรือ เบอร์โทรศัพท์';
-                status.style.color = 'red';
-                document.getElementById('usernameInput').focus();
-                return;
-            }
 
             const btn = document.getElementById('loginBtn');
             const btnText = document.getElementById('btnText');
