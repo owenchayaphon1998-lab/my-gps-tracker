@@ -211,7 +211,8 @@ def delete_all_messages(token, chat_id):
         print(f"❌ เกิดข้อผิดพลาดในการลบ: {e}")
 
 with socketserver.TCPServer(("", PORT), TrackerHandler) as httpd:
-    print(f"✅ เซิร์ฟเวอร์ Python รันอยู่ที่พอร์ต {PORT}")
+    print(f"✅ เซิร์ฟเวอร์รันอยู่ที่: http://localhost:{PORT}")
+    print("เปิดเว็บเบราว์เซอร์แล้วเข้าลิ้งค์ด้านบนเพื่อทดสอบ")
     
     # เริ่มระบบดักฟัง Telegram เบื้องหลัง
     tg_thread = threading.Thread(target=poll_telegram, daemon=True)
